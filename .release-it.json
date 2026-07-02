@@ -68,6 +68,7 @@
     }
   },
   "hooks": {
-    "before:init": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+    "before:init": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "after:@release-it/conventional-changelog:beforeRelease": "node scripts/ensure-changelog-entry.mjs ${latestVersion} ${version}"
   }
 }
