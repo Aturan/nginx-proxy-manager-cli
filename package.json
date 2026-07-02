@@ -47,7 +47,10 @@
     "prepare": "husky",
     "typecheck": "tsc --noEmit",
     "test": "vitest run tests/unit tests/integration",
-    "release": "release-it"
+    "release": "node -e \"console.error('Use pnpm release:patch, pnpm release:minor, or pnpm release:major'); process.exit(1)\"",
+    "release:patch": "release-it patch --ci",
+    "release:minor": "release-it minor --ci",
+    "release:major": "release-it major --ci"
   },
   "dependencies": {
     "@inquirer/prompts": "^7.8.0",
