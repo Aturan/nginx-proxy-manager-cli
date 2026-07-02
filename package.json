@@ -16,8 +16,7 @@
     "dist",
     "README.md",
     "AGENTS.md",
-    "CHANGELOG.md",
-    "skills/nginx-proxy-manager-cli"
+    "CHANGELOG.md"
   ],
   "license": "MIT",
   "repository": {
