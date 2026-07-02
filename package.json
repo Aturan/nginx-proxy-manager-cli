@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "用于管理 Nginx Proxy Manager API。",
   "type": "module",
+  "packageManager": "pnpm@11.7.0",
   "bin": {
     "nginx-proxy-manager": "./dist/cli.js"
   },
