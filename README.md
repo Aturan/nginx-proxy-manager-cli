@@ -44,6 +44,8 @@ nginx-proxy-manager --yes proxy-hosts update 1 \
   --body-json '{"enabled":true}'
 ```
 
+常规 API 命令优先支持全局 `--json`，方便脚本读取。二进制下载、stream/raw payload 按命令语义处理；使用 `--output` 写文件时，`--json` 可用于输出 `ok`、`output`、`bytes` 等结果元数据。
+
 ## 配置
 
 默认配置路径：
@@ -94,6 +96,7 @@ nginx-proxy-manager --yes certificates create --body-json '{"provider":"letsencr
 nginx-proxy-manager --yes certificates delete 1
 nginx-proxy-manager --yes certificates renew 1
 nginx-proxy-manager certificates download 1 --output cert.zip
+nginx-proxy-manager certificates download 1 --output ./downloads
 nginx-proxy-manager --yes certificates upload --from-file certificate-upload.json
 ```
 

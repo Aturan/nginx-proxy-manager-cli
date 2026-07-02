@@ -35,4 +35,5 @@ export interface RequestRecord {
   path: string;
   query?: Record<string, string | number | boolean> | undefined;
   body?: JsonValue | FormData | undefined;
+  responseType?: "json" | "arrayBuffer" | undefined;
 }

@@ -73,6 +73,10 @@ export class ApiClient {
     await assertOk(response);
     if (response.status === 204) return { ok: true };
 
+    if (record.responseType === "arrayBuffer") {
+      return { data: await response.arrayBuffer() } as unknown as JsonValue;
+    }
+
     const contentType = response.headers.get("content-type") ?? "";
     if (contentType.includes("application/octet-stream")) {
       return { data: await response.arrayBuffer() } as unknown as JsonValue;

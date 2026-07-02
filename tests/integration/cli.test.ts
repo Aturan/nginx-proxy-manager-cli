@@ -281,6 +281,137 @@ describe("CLI integration", () => {
     expect(JSON.parse(String(calls[1]?.[1]?.body))).toEqual({ enabled: true });
   });
 
+  it("certificates download 写入二进制文件", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "npm-cli-cert-download-"));
+    const configPath = join(dir, "config.json");
+    const outputPath = join(dir, "certificate.zip");
+    await writeConfig(configPath, {
+      default_profile: "prod",
+      profiles: {
+        prod: { base_url: "https://proxy.example.test", username: "admin", password: "password" }
+      }
+    });
+    const body = new Uint8Array([0x50, 0x4b, 0x03, 0x04]);
+    const calls: Array<[string | URL | Request, RequestInit | undefined]> = [];
+    const fetchMock = ((url: string | URL | Request, init?: RequestInit) => {
+      calls.push([url, init]);
+      if (String(url).endsWith("/api/tokens")) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ token: "jwt-value", expires: "2999-01-01T00:00:00.000Z" }), {
+            headers: { "content-type": "application/json" }
+          })
+        );
+      }
+      return Promise.resolve(new Response(body, { headers: { "content-type": "application/zip" } }));
+    }) as typeof fetch;
+    const stdout = new MemoryWritable();
+
+    await createProgram({
+      env: {},
+      homeDir: dir,
+      fetch: fetchMock,
+      stdout,
+      stderr: new MemoryWritable()
+    }).parseAsync(["node", "cli", "--config", configPath, "certificates", "download", "15", "--output", outputPath]);
+
+    expect(String(calls[1]?.[0])).toBe("https://proxy.example.test/api/nginx/certificates/15/download");
+    expect([...new Uint8Array(await readFile(outputPath))]).toEqual([...body]);
+    expect(stdout.text()).toBe("");
+  });
+
+  it("certificates download 支持 --json 输出元数据", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "npm-cli-cert-download-json-"));
+    const configPath = join(dir, "config.json");
+    const outputPath = join(dir, "cert.zip");
+    await writeConfig(configPath, {
+      default_profile: "prod",
+      profiles: {
+        prod: { base_url: "https://proxy.example.test", username: "admin", password: "password" }
+      }
+    });
+    const body = new Uint8Array([0x50, 0x4b, 0x03, 0x04]);
+    const fetchMock = ((url: string | URL | Request) => {
+      if (String(url).endsWith("/api/tokens")) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ token: "jwt-value", expires: "2999-01-01T00:00:00.000Z" }), {
+            headers: { "content-type": "application/json" }
+          })
+        );
+      }
+      return Promise.resolve(new Response(body, { headers: { "content-type": "application/zip" } }));
+    }) as typeof fetch;
+    const stdout = new MemoryWritable();
+
+    await createProgram({
+      env: {},
+      homeDir: dir,
+      fetch: fetchMock,
+      stdout,
+      stderr: new MemoryWritable()
+    }).parseAsync(["node", "cli", "--config", configPath, "--json", "certificates", "download", "15", "--output", outputPath]);
+
+    expect([...new Uint8Array(await readFile(outputPath))]).toEqual([...body]);
+    expect(JSON.parse(stdout.text())).toEqual({
+      ok: true,
+      output: outputPath,
+      bytes: body.byteLength
+    });
+  });
+
+  it("certificates download 输出到目录时用域名生成文件名", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "npm-cli-cert-download-domain-"));
+    const configPath = join(dir, "config.json");
+    await writeConfig(configPath, {
+      default_profile: "prod",
+      profiles: {
+        prod: { base_url: "https://proxy.example.test", username: "admin", password: "password" }
+      }
+    });
+    const body = new Uint8Array([0x50, 0x4b, 0x03, 0x04]);
+    const calls: Array<[string | URL | Request, RequestInit | undefined]> = [];
+    const fetchMock = ((url: string | URL | Request, init?: RequestInit) => {
+      calls.push([url, init]);
+      const value = String(url);
+      if (value.endsWith("/api/tokens")) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ token: "jwt-value", expires: "2999-01-01T00:00:00.000Z" }), {
+            headers: { "content-type": "application/json" }
+          })
+        );
+      }
+      if (value.endsWith("/api/nginx/certificates/15")) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ id: 15, nice_name: "*.example.test", domain_names: ["www.example.test", "*.example.test"] }), {
+            headers: { "content-type": "application/json" }
+          })
+        );
+      }
+      return Promise.resolve(new Response(body, { headers: { "content-type": "application/zip" } }));
+    }) as typeof fetch;
+    const stdout = new MemoryWritable();
+
+    await createProgram({
+      env: {},
+      homeDir: dir,
+      fetch: fetchMock,
+      stdout,
+      stderr: new MemoryWritable()
+    }).parseAsync(["node", "cli", "--config", configPath, "--json", "certificates", "download", "15", "--output", dir]);
+
+    const outputPath = join(dir, "cert_example_test.zip");
+    expect(calls.map(([url]) => String(url))).toEqual([
+      "https://proxy.example.test/api/tokens",
+      "https://proxy.example.test/api/nginx/certificates/15",
+      "https://proxy.example.test/api/nginx/certificates/15/download"
+    ]);
+    expect([...new Uint8Array(await readFile(outputPath))]).toEqual([...body]);
+    expect(JSON.parse(stdout.text())).toEqual({
+      ok: true,
+      output: outputPath,
+      bytes: body.byteLength
+    });
+  });
+
   it("profile list/show 会脱敏并支持 JSON 输出", async () => {
     const dir = await mkdtemp(join(tmpdir(), "npm-cli-profile-json-"));
     const configPath = join(dir, "config.json");

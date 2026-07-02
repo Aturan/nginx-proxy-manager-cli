@@ -1,5 +1,7 @@
 import { createWriteStream } from "node:fs";
+import { stat } from "node:fs/promises";
 import { createRequire } from "node:module";
+import { join } from "node:path";
 import { Command } from "commander";
 import { confirm, input, password } from "@inquirer/prompts";
 import { addProfile, getProfileName, readConfig, removeProfile, resolveConfigPath, selectProfile, useProfile, writeConfig } from "./config.js";
@@ -325,18 +327,29 @@ function addResourceCommands(program: Command, context: RuntimeContext, resource
     group
       .command("download <id>")
       .description("下载 certificate")
-      .requiredOption("--output <path>", "输出文件路径")
+      .option("--output <path>", "输出文件或目录路径", ".")
       .action(async (id: string, options: CommandOptions, command: Command) => {
         const global = getGlobal(command);
         const client = await getClient(command, context);
-        const result = await client.request({ method: "GET", path: resourcePath(resource, coerceId(id), "download") });
+        const output = await resolveCertificateDownloadOutput(client, coerceId(id), String(options.output));
+        const result = await client.request({
+          method: "GET",
+          path: resourcePath(resource, coerceId(id), "download"),
+          responseType: "arrayBuffer"
+        });
         const object = dataToJsonObject(result);
         const data = object.data;
         if (!(data instanceof ArrayBuffer)) {
           throw new Error("certificate download 未返回二进制内容");
         }
-        await writeBinary(String(options.output), data);
-        writeResult(context, global, { ok: true, output: String(options.output) });
+        await writeBinary(output, data);
+        if (global.json) {
+          writeResult(context, global, {
+            ok: true,
+            output,
+            bytes: data.byteLength
+          });
+        }
       });
 
     group
@@ -350,6 +363,44 @@ function addResourceCommands(program: Command, context: RuntimeContext, resource
         await writeResource(command, context, resource, "upload", undefined, options, "POST", "upload");
       });
   }
+}
+
+async function resolveCertificateDownloadOutput(client: ApiClient, id: number | string, output: string): Promise<string> {
+  if (!(await isDirectoryPath(output))) {
+    return output;
+  }
+  const certificate = dataToJsonObject(await client.request({ method: "GET", path: resourcePath("certificates", id) }));
+  return join(output, certificateDownloadFilename(certificate, id));
+}
+
+async function isDirectoryPath(path: string): Promise<boolean> {
+  if (path.endsWith("/") || path.endsWith("\\")) return true;
+  try {
+    return (await stat(path)).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+function certificateDownloadFilename(certificate: JsonObject, id: number | string): string {
+  const domainNames = certificate.domain_names;
+  const domains = Array.isArray(domainNames) ? domainNames.filter((domain): domain is string => typeof domain === "string") : [];
+  const wildcardDomain = domains.find((domain) => domain.trim().startsWith("*."));
+  const firstDomain = domains[0];
+  const niceName = typeof certificate.nice_name === "string" ? certificate.nice_name : undefined;
+  return `cert_${sanitizeFilename(wildcardDomain ?? firstDomain ?? niceName ?? `certificate-${String(id)}`)}.zip`;
+}
+
+function sanitizeFilename(value: string): string {
+  const domainName = value.trim().replace(/^\*\./, "");
+  const safe = Array.from(domainName, (char) => (isUnsafeFilenameChar(char) || char === "." ? "_" : char))
+    .join("")
+    .replace(/^\.+|\.+$/g, "");
+  return safe || "certificate";
+}
+
+function isUnsafeFilenameChar(char: string): boolean {
+  return char.charCodeAt(0) < 32 || '<>:"/\\|?*'.includes(char);
 }
 
 async function writeResource(
