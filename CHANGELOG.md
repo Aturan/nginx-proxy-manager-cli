@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.3](https://github.com/Aturan/nginx-proxy-manager-cli/compare/v0.2.2...v0.2.3) (2026-07-02)
+
+### Bug Fixes
+
+- **certificates:** 修复证书下载
+
+### Other
+
+- **agents:** 添加代理技能
+- **skills:** 重写CLI使用技能
+
 ## [0.2.2](https://github.com/Aturan/nginx-proxy-manager-cli/compare/v0.2.1...v0.2.2) (2026-07-02)
 
 ### Other

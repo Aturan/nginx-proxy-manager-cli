@@ -1,6 +1,6 @@
 {
   "name": "nginx-proxy-manager-cli",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "用于管理 Nginx Proxy Manager API。",
   "type": "module",
   "packageManager": "pnpm@10.23.0",
