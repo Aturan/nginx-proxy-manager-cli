@@ -1,6 +1,7 @@
 ---
 name: nginx-proxy-manager
-description: 当用户要使用 nginx-proxy-manager CLI 管理 Nginx Proxy Manager，包括配置 profile、读取资源、下载证书或执行写操作时使用；重点处理凭据、token、证书和真实环境写操作风险。
+description: 使用 nginx-proxy-manager CLI 管理 Nginx Proxy Manager 时的安全操作 runbook。
+disable-model-invocation: true
 ---
 
 # Nginx Proxy Manager

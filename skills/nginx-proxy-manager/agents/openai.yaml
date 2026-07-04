@@ -1,0 +1,7 @@
+interface:
+  display_name: "Nginx Proxy Manager"
+  short_description: "安全使用 nginx-proxy-manager CLI 管理 Nginx Proxy Manager"
+  default_prompt: "使用 $nginx-proxy-manager 安全执行 nginx-proxy-manager CLI 操作。"
+
+policy:
+  allow_implicit_invocation: false
