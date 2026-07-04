@@ -5,3 +5,4 @@ coverage/
 .env.*
 *.log
 tmp/
+.agents/
