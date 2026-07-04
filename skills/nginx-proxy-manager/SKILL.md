@@ -1,40 +1,40 @@
 ---
 name: nginx-proxy-manager
-description: Use when the user wants to operate the nginx-proxy-manager CLI to manage Nginx Proxy Manager, including profiles, read-only resource checks, certificate downloads, or write operations; focus on credential, token, certificate, and real-environment safety risks.
+description: 当用户要使用 nginx-proxy-manager CLI 管理 Nginx Proxy Manager，包括配置 profile、读取资源、下载证书或执行写操作时使用；重点处理凭据、token、证书和真实环境写操作风险。
 ---
 
 # Nginx Proxy Manager
 
-Use the `nginx-proxy-manager` CLI to manage Nginx Proxy Manager. This skill is for operating the CLI, not for changing its source code. Its main job is to choose the right config, separate read-only commands from write operations, and avoid leaking credentials or certificate material.
+使用 `nginx-proxy-manager` CLI 管理 Nginx Proxy Manager。这个 skill 面向 CLI 使用，不面向源码开发；重点是安全地选择配置、区分只读命令和写操作，并避免泄漏凭据或证书内容。
 
-## Preconditions
+## 前置条件
 
-1. The user wants to run `nginx-proxy-manager`.
-   Completion criterion: the task is profile setup, connectivity checks, resource reads, certificate downloads, or resource management.
-2. The command may touch a real environment.
-   Completion criterion: you know whether the command is read-only; write operations require explicit user approval.
-3. The task may involve credentials, tokens, certificates, or config files.
-   Completion criterion: sensitive content is not printed, and sensitive files are not written into the current repository.
+1. 用户要运行 `nginx-proxy-manager`。
+   完成标准：任务是配置 profile、检查连接、读取资源、下载证书或管理资源。
+2. 命令可能连接真实环境。
+   完成标准：已判断命令是否只读；写操作必须获得用户明确同意。
+3. 任务可能涉及凭据、token、证书或配置文件。
+   完成标准：不打印敏感内容，不把敏感文件写入当前仓库。
 
-## Config Source
+## 配置来源
 
-Config path priority:
+配置路径优先级：
 
 1. `--config PATH`
 2. `NGINX_PROXY_MANAGER_CONFIG`
 3. `$HOME/.nginx-xproxy-manager.json`
 
-Prefer a test-specific config for real environments:
+真实环境优先使用测试专用配置：
 
 ```bash
 nginx-proxy-manager --config /path/to/config.json profile list
 ```
 
-Do not read or modify the user's real HOME config unless the user allows it. A profile stores `base_url`, `username`, `password`, cached token, and token expiry. Treat the config file as sensitive.
+不要在未获允许时读取或修改用户真实 HOME 配置。profile 会保存 `base_url`、`username`、`password`、缓存 token 和 token 过期时间。配置文件属于敏感文件。
 
-## Read-Only First
+## 只读优先
 
-When connecting to a real environment, start with read-only commands:
+连接真实环境时先运行只读命令：
 
 ```bash
 nginx-proxy-manager --json health
@@ -44,7 +44,7 @@ nginx-proxy-manager --json redirection-hosts list
 nginx-proxy-manager --json streams list
 ```
 
-Read-only commands include:
+只读命令包括：
 
 - `health`
 - `schema`
@@ -53,11 +53,11 @@ Read-only commands include:
 - `get`
 - `certificates download`
 
-Completion criterion: the read-only command succeeds, and the output does not contain a JWT, password, token, secret, or certificate content.
+完成标准：只读命令成功，输出中没有 JWT、password、token、secret 或证书内容。
 
-## Write Boundary
+## 写操作边界
 
-Write operations include:
+写操作包括：
 
 - `create`
 - `update`
@@ -67,19 +67,19 @@ Write operations include:
 - `renew`
 - `upload`
 
-Write operations require confirmation by default. Use `--yes` only for automation. Before running a write operation against a real environment, confirm the target resource, action, and impact with the user.
+写操作默认需要确认。只有自动化场景才使用 `--yes`。对真实环境执行写操作前，必须和用户确认目标资源、操作类型和影响范围。
 
-Example:
+示例：
 
 ```bash
 nginx-proxy-manager --yes proxy-hosts update 1 --body-json '{"enabled":true}'
 ```
 
-Completion criterion: the user approved the write, the command target and request body were checked, and the output contains no sensitive fields.
+完成标准：用户已授权写操作，命令目标和请求体已核对，输出不包含敏感字段。
 
 ## Profiles
 
-Add a profile:
+新增 profile：
 
 ```bash
 nginx-proxy-manager profile add prod \
@@ -89,9 +89,9 @@ nginx-proxy-manager profile add prod \
   --default
 ```
 
-If `profile add` is missing required values, the CLI prompts interactively. Do not write real passwords into repository files, logs, or final replies.
+如果 `profile add` 缺少必填值，CLI 会交互式提问。不要把真实密码写入仓库文件、日志或最终回复。
 
-Common commands:
+常用命令：
 
 ```bash
 nginx-proxy-manager profile list
@@ -100,11 +100,11 @@ nginx-proxy-manager profile use prod
 nginx-proxy-manager profile remove prod
 ```
 
-`profile show` should display redacted credentials only. If output contains a plaintext password or token, stop and report the safety risk.
+`profile show` 应只展示脱敏后的凭据。如果输出包含明文密码或 token，停止操作并报告安全风险。
 
-## Complex Request Bodies
+## 复杂请求体
 
-Use REST API field names directly for shallow data:
+浅层数据直接使用 REST API 字段名：
 
 ```bash
 nginx-proxy-manager --yes proxy-hosts create \
@@ -114,69 +114,69 @@ nginx-proxy-manager --yes proxy-hosts create \
   --forward_port 8080
 ```
 
-Use `--body-json` or `--from-file` for nested objects:
+嵌套对象使用 `--body-json` 或 `--from-file`：
 
 ```bash
 nginx-proxy-manager --yes proxy-hosts update 1 --body-json '{"enabled":true}'
 nginx-proxy-manager --yes redirection-hosts update 1 --from-file redirection-host.json
 ```
 
-Completion criterion: the request body contains no real secret. If reading from a file, confirm the file is not an `.env` file, real config, or private key.
+完成标准：请求体不包含真实 secret。从文件读取时，确认文件不是 `.env`、真实配置或私钥文件。
 
-## Certificate Downloads
+## 证书下载
 
-Certificate download is read-only, but the output file is sensitive. Prefer a temporary directory outside the repository:
+证书下载是只读命令，但下载产物敏感。优先写到仓库外临时目录：
 
 ```bash
 tmp_dir="$(mktemp -d)"
 nginx-proxy-manager --json certificates download 15 --output "$tmp_dir"
 ```
 
-When `--output` is a directory, the CLI generates a zip filename from the certificate domain:
+当 `--output` 是目录时，CLI 会按证书域名生成 zip 文件名：
 
 ```text
 *.example.com -> cert_example_com.zip
 ```
 
-You may inspect the filename, size, permissions, and file type:
+可以检查文件名、大小、权限和文件类型：
 
 ```bash
 ls -l "$tmp_dir"
 file "$tmp_dir"/*.zip
 ```
 
-Do not run commands that print certificate content, such as `cat` or `unzip -p`. Do not place certificate zip files in the repository or commit them.
+不要运行会打印证书内容的命令，例如 `cat` 或 `unzip -p`。不要把证书 zip 放进仓库或提交。
 
-## Output And Redaction
+## 输出和脱敏
 
-Prefer `--json` for regular API commands so scripts can parse the output. Binary downloads, streams, and raw payloads follow command-specific behavior. When a file is written to `--output`, `--json` should only print result metadata.
+常规 API 命令优先使用 `--json`，方便脚本读取。二进制下载、stream 和 raw payload 按命令语义处理。如果文件写到 `--output`，`--json` 只应输出结果元数据。
 
-Never paste these into a reply:
+永远不要在回复里粘贴：
 
 - JWT
 - password
 - token
 - secret
-- private key
-- certificate zip content
-- real config file content
+- 私钥
+- 证书压缩包内容
+- 真实配置文件内容
 
-If command output appears to contain sensitive data, stop quoting it. Report only the field category and the risk.
+如果命令输出疑似包含敏感内容，停止引用原文。只报告字段类别和风险。
 
-## Failure Handling
+## 失败处理
 
-- Authentication failed: do not guess credentials; ask the user to check the test-specific config.
-- 2FA required: the CLI does not support 2FA; suggest a dedicated account without 2FA.
-- Write confirmation missing: do not add `--yes` automatically unless the user explicitly asked for automated writes.
-- Download file landed in the repository: tell the user not to commit it and suggest moving it outside the repo.
-- API error: report the command, HTTP status, and redacted error summary.
+- 认证失败：不要猜测凭据；让用户检查测试专用配置。
+- 需要 2FA：CLI 不支持 2FA；建议使用未启用 2FA 的专用账号。
+- 写操作缺少确认：不要自动补 `--yes`，除非用户明确要求自动化写操作。
+- 下载文件落到仓库内：提醒用户不要提交，并建议移动到仓库外。
+- API 返回错误：报告命令、HTTP 状态和脱敏后的错误摘要。
 
-## Final Report
+## 完成报告
 
-Report only:
+只报告：
 
-- Config source, using the path when needed but not the file content.
-- Command category: read-only, write operation, or certificate download.
-- Success or failure result.
-- Download path, size, and file type; do not include certificate content.
-- Any safety risk the user must handle.
+- 配置来源；必要时写路径，不写文件内容。
+- 命令类别：只读、写操作或证书下载。
+- 成功或失败结果。
+- 下载路径、大小和文件类型；不包含证书内容。
+- 需要用户处理的安全风险。
